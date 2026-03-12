@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Australian Government Reference Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --border: #d0ccc3;
+    --border-focus: #1a4f7a;
+    --text: #1c1a17;
+    --text-muted: #6b6560;
+    --accent: #1a4f7a;
+    --accent-light: #e8f0f7;
+    --accent-hover: #153f62;
+    --tag-bg: #1a4f7a;
+    --tag-text: #fff;
+    --preview-bg: #f0ede6;
+    --success: #2d6a4f;
+    --mono: ui-monospace, 'Cascadia Code', 'Menlo', 'Consolas', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  header {
+    border-bottom: 2px solid var(--text);
+    padding-bottom: 18px;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  /* Type selector tabs */
+  .type-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 32px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .type-tab {
+    flex: 1;
+    padding: 10px 8px;
+    background: var(--surface);
+    border: none;
+    border-right: 1.5px solid var(--border);
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .type-tab:last-child { border-right: none; }
+
+  .type-tab:hover { background: var(--accent-light); color: var(--accent); }
+
+  .type-tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Form sections */
+  .form-section {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+
+  .field .hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-left: 6px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    color: var(--text);
+    background: var(--bg);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--border-focus);
+    background: #fff;
+  }
+
+  .field input::placeholder { color: var(--border); }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .field-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Authors */
+  .author-entry {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .author-entry:last-child { margin-bottom: 0; }
+
+  .author-num {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+  }
+
+  .remove-author {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .remove-author:hover { border-color: #c0392b; color: #c0392b; }
+
+  .add-author-btn {
+    margin-top: 12px;
+    padding: 7px 14px;
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .add-author-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Role tags for podcasts */
+  .role-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--accent-light);
+    color: var(--accent);
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  /* Preview */
+  .preview-box {
+    background: var(--preview-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+  }
+
+  .preview-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .preview-text {
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .preview-text.empty { color: var(--text-muted); font-style: italic; }
+
+  /* Generate button */
+  .generate-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.15s;
+    margin-bottom: 20px;
+  }
+
+  .generate-btn:hover { background: var(--accent-hover); }
+
+  /* Output */
+  .output-box {
+    display: none;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .output-row {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-row:last-child { border-bottom: none; }
+
+  .output-row-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .output-row-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .copy-btn {
+    padding: 5px 12px;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+  .output-text {
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  .intext-text {
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    background: var(--bg);
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* Validation */
+  .field input.invalid { border-color: #c0392b; }
+
+  .validation-msg {
+    font-size: 0.7rem;
+    color: #c0392b;
+    margin-top: 4px;
+    display: none;
+  }
+
+  @media (max-width: 500px) {
+    .field-row, .field-row-3 { grid-template-columns: 1fr; }
+    .type-tab { font-size: 0.7rem; padding: 8px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Reference Generator</h1>
+    <p>Australian Government Style Manual — Author–Date system</p>
+  </header>
+
+  <!-- Source type tabs -->
+  <div class="type-tabs" role="tablist">
+    <button class="type-tab active" role="tab" onclick="switchType('book', this)">Book</button>
+    <button class="type-tab" role="tab" onclick="switchType('journal', this)">Journal Article</button>
+    <button class="type-tab" role="tab" onclick="switchType('website', this)">Website</button>
+    <button class="type-tab" role="tab" onclick="switchType('podcast', this)">Podcast</button>
+  </div>
+
+  <!-- ── BOOK ─────────────────────────────────────────────── -->
+  <div id="form-book">
+
+    <div class="form-section">
+      <div class="section-title">Author(s)</div>
+      <div id="book-authors"></div>
+      <button class="add-author-btn" onclick="addAuthor('book')">+ Add author</button>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Publication details</div>
+      <div class="field">
+        <label>Year of publication</label>
+        <input id="book-year" placeholder="e.g. 2023" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Book title <span class="hint">— will be italicised</span></label>
+        <input id="book-title" placeholder="e.g. Writing for Government" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Edition <span class="hint">— leave blank for first edition</span></label>
+        <input id="book-edition" placeholder="e.g. 2nd edn" oninput="update()">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Publisher</label>
+          <input id="book-publisher" placeholder="e.g. Allen &amp; Unwin" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Place of publication</label>
+          <input id="book-place" placeholder="e.g. Canberra" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── JOURNAL ────────────────────────────────────────────── -->
+  <div id="form-journal" style="display:none">
+
+    <div class="form-section">
+      <div class="section-title">Author(s)</div>
+      <div id="journal-authors"></div>
+      <button class="add-author-btn" onclick="addAuthor('journal')">+ Add author</button>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Article details</div>
+      <div class="field">
+        <label>Year of publication</label>
+        <input id="journal-year" placeholder="e.g. 2023" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Article title <span class="hint">— not italicised</span></label>
+        <input id="journal-article-title" placeholder="e.g. Policy innovation in federal systems" oninput="update()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Journal details</div>
+      <div class="field">
+        <label>Journal title <span class="hint">— will be italicised</span></label>
+        <input id="journal-title" placeholder="e.g. Australian Journal of Public Administration" oninput="update()">
+      </div>
+      <div class="field-row-3">
+        <div class="field">
+          <label>Volume</label>
+          <input id="journal-volume" placeholder="e.g. 12" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Issue / number</label>
+          <input id="journal-issue" placeholder="e.g. 3" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Pages</label>
+          <input id="journal-pages" placeholder="e.g. 22–35" oninput="update()">
+        </div>
+      </div>
+      <div class="field">
+        <label>DOI <span class="hint">— if available</span></label>
+        <input id="journal-doi" placeholder="e.g. 10.1000/xyz123" oninput="update()">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── WEBSITE ────────────────────────────────────────────── -->
+  <div id="form-website" style="display:none">
+
+    <div class="form-section">
+      <div class="section-title">Author / organisation</div>
+      <div class="field">
+        <label>Author type</label>
+        <select id="website-author-type" onchange="toggleWebsiteAuthorType(); update()">
+          <option value="person">Individual author(s)</option>
+          <option value="org">Organisation / no named author</option>
+        </select>
+      </div>
+      <div id="website-person-authors">
+        <div id="website-authors"></div>
+        <button class="add-author-btn" onclick="addAuthor('website')">+ Add author</button>
+      </div>
+      <div id="website-org-field" style="display:none" class="field">
+        <label>Organisation name</label>
+        <input id="website-org" placeholder="e.g. Australian Bureau of Statistics" oninput="update()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Page details</div>
+      <div class="field">
+        <label>Year published or last updated <span class="hint">— use 'n.d.' if unknown</span></label>
+        <input id="website-year" placeholder="e.g. 2024 or n.d." oninput="update()">
+      </div>
+      <div class="field">
+        <label>Page title</label>
+        <input id="website-page-title" placeholder="e.g. Census of Population and Housing" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Website / platform name <span class="hint">— omit if same as author organisation</span></label>
+        <input id="website-site-name" placeholder="e.g. ABS website" oninput="update()">
+      </div>
+      <div class="field">
+        <label>URL</label>
+        <input id="website-url" type="url" placeholder="https://" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Date accessed</label>
+        <input id="website-access" placeholder="e.g. 12 March 2026" oninput="update()">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── PODCAST ────────────────────────────────────────────── -->
+  <div id="form-podcast" style="display:none">
+
+    <div class="form-section">
+      <div class="section-title">Host <span class="role-tag">required</span></div>
+      <div class="field-row">
+        <div class="field">
+          <label>First name</label>
+          <input id="podcast-host-first" placeholder="e.g. Jane" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Last name</label>
+          <input id="podcast-host-last" placeholder="e.g. Smith" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Producer <span class="role-tag" style="background:#e8f5e9;color:#2d6a4f">optional</span></div>
+      <div class="field-row">
+        <div class="field">
+          <label>First name</label>
+          <input id="podcast-producer-first" placeholder="e.g. Alex" oninput="update()">
+        </div>
+        <div class="field">
+          <label>Last name</label>
+          <input id="podcast-producer-last" placeholder="e.g. Jones" oninput="update()">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Episode details</div>
+      <div class="field">
+        <label>Episode title</label>
+        <input id="podcast-episode-title" placeholder="e.g. The future of public services" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Episode number <span class="hint">— optional</span></label>
+        <input id="podcast-episode-num" placeholder="e.g. 42" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Publication date <span class="hint">— Day Month Year</span></label>
+        <input id="podcast-date" placeholder="e.g. 26 December 2019" oninput="update()">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Podcast series details</div>
+      <div class="field">
+        <label>Podcast series name <span class="hint">— will be italicised</span></label>
+        <input id="podcast-series" placeholder="e.g. The Policy Shop" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Network / publisher <span class="hint">— optional</span></label>
+        <input id="podcast-network" placeholder="e.g. ABC Audio Studios" oninput="update()">
+      </div>
+      <div class="field">
+        <label>URL or platform</label>
+        <input id="podcast-url" placeholder="e.g. https://www.abc.net.au/…" oninput="update()">
+      </div>
+      <div class="field">
+        <label>Date accessed</label>
+        <input id="podcast-access" placeholder="e.g. 21 January 2020" oninput="update()">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Live preview -->
+  <div class="preview-box">
+    <div class="preview-label">Live preview — reference list entry</div>
+    <div class="preview-text empty" id="preview">Fill in the fields above to see your reference…</div>
+  </div>
+
+  <button class="generate-btn" onclick="generateReference()">Generate reference</button>
+
+  <!-- Output -->
+  <div class="output-box" id="output">
+    <div class="output-row">
+      <div class="output-row-header">
+        <div class="output-row-label">Reference list entry</div>
+        <button class="copy-btn" id="copy-ref-btn" onclick="copyRef()">Copy formatted</button>
+      </div>
+      <div class="output-text" id="output-ref"></div>
+    </div>
+    <div class="output-row">
+      <div class="output-row-header">
+        <div class="output-row-label">In-text citation</div>
+        <button class="copy-btn" id="copy-intext-btn" onclick="copyIntext()">Copy</button>
+      </div>
+      <div class="intext-text" id="output-intext"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────
+let currentType = 'book';
+const authorCounts = { book: 0, journal: 0, website: 0 };
+
+// ── Init ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  addAuthor('book');
+  addAuthor('journal');
+  addAuthor('website');
+  update();
+});
+
+// ── Type switching ─────────────────────────────────────────────────
+function switchType(type, btn) {
+  document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[id^="form-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('form-' + type).style.display = 'block';
+  currentType = type;
+  update();
+}
+
+// ── Author management ──────────────────────────────────────────────
+function addAuthor(type) {
+  authorCounts[type] = (authorCounts[type] || 0) + 1;
+  const n = authorCounts[type];
+  const container = document.getElementById(type + '-authors');
+
+  const div = document.createElement('div');
+  div.className = 'author-entry';
+  div.dataset.authorId = n;
+  div.innerHTML = `
+    <span class="author-num">Author ${n}</span>
+    <input class="author-first" placeholder="First name" oninput="update()">
+    <input class="author-last" placeholder="Last name" oninput="update()">
+    ${n > 1 ? `<button class="remove-author" onclick="removeAuthor(this, '${type}')" title="Remove">×</button>` : '<span></span>'}
+  `;
+  container.appendChild(div);
+  update();
+}
+
+function removeAuthor(btn, type) {
+  btn.closest('.author-entry').remove();
+  // Re-number
+  document.querySelectorAll(`#${type}-authors .author-entry`).forEach((el, i) => {
+    el.querySelector('.author-num').textContent = `Author ${i + 1}`;
+  });
+  update();
+}
+
+// ── Website author type toggle ─────────────────────────────────────
+function toggleWebsiteAuthorType() {
+  const isPerson = document.getElementById('website-author-type').value === 'person';
+  document.getElementById('website-person-authors').style.display = isPerson ? 'block' : 'none';
+  document.getElementById('website-org-field').style.display = isPerson ? 'none' : 'block';
+}
+
+// ── Build author string ────────────────────────────────────────────
+function getAuthors(type) {
+  const entries = document.querySelectorAll(`#${type}-authors .author-entry`);
+  const list = [];
+  entries.forEach(e => {
+    const first = e.querySelector('.author-first').value.trim();
+    const last = e.querySelector('.author-last').value.trim();
+    if (last) {
+      const initial = first ? first.charAt(0).toUpperCase() + ' ' : '';
+      list.push(`${last} ${initial}`.trim());
+    }
+  });
+  if (list.length === 0) return '';
+  if (list.length === 1) return list[0];
+  if (list.length === 2) return list.join(' and ');
+  return list.slice(0, -1).join(', ') + ' and ' + list.slice(-1)[0];
+}
+
+function firstSurname(type) {
+  const entry = document.querySelector(`#${type}-authors .author-entry`);
+  if (!entry) return '';
+  return entry.querySelector('.author-last').value.trim();
+}
+
+// ── Build reference by type ────────────────────────────────────────
+function buildRef() {
+  switch (currentType) {
+    case 'book':    return buildBook();
+    case 'journal': return buildJournal();
+    case 'website': return buildWebsite();
+    case 'podcast': return buildPodcast();
+  }
+  return '';
+}
+
+function val(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function buildBook() {
+  const authors   = getAuthors('book');
+  const year      = val('book-year');
+  const title     = val('book-title');
+  const edition   = val('book-edition');
+  const publisher = val('book-publisher');
+  const place     = val('book-place');
+
+  if (!authors && !year && !title) return '';
+
+  let ref = '';
+  if (authors)   ref += authors + ' ';
+  if (year)      ref += `(${year}) `;
+  if (title)     ref += `<em>${title}</em>`;
+  if (edition)   ref += `, ${edition}`;
+  if (publisher) ref += `, ${publisher}`;
+  if (place)     ref += `, ${place}`;
+  ref += '.';
+  return ref;
+}
+
+function buildJournal() {
+  const authors      = getAuthors('journal');
+  const year         = val('journal-year');
+  const articleTitle = val('journal-article-title');
+  const journal      = val('journal-title');
+  const volume       = val('journal-volume');
+  const issue        = val('journal-issue');
+  const pages        = val('journal-pages');
+  const doi          = val('journal-doi');
+
+  if (!authors && !year && !articleTitle) return '';
+
+  let ref = '';
+  if (authors)      ref += authors + ' ';
+  if (year)         ref += `(${year}) `;
+  if (articleTitle) ref += `'${articleTitle}'`;
+  if (journal)      ref += `, <em>${journal}</em>`;
+  if (volume)       ref += `, vol. ${volume}`;
+  if (issue)        ref += `, no. ${issue}`;
+  if (pages)        ref += `, pp. ${pages}`;
+  ref += '.';
+  if (doi)          ref += ` DOI: ${doi}.`;
+  return ref;
+}
+
+function buildWebsite() {
+  const authorType = val('website-author-type');
+  let authors = '';
+  let surname = '';
+
+  if (authorType === 'person') {
+    authors = getAuthors('website');
+    surname = firstSurname('website');
+  } else {
+    authors = val('website-org');
+    surname = authors;
+  }
+
+  const year      = val('website-year');
+  const pageTitle = val('website-page-title');
+  const siteName  = val('website-site-name');
+  const url       = val('website-url');
+  const access    = val('website-access');
+
+  if (!authors && !year && !pageTitle) return '';
+
+  let ref = '';
+  if (authors)   ref += authors + ' ';
+  if (year)      ref += `(${year}) `;
+  if (pageTitle) ref += pageTitle;
+
+  // Append site name as "X website" if provided and not already ending in "website"
+  if (siteName) {
+    const sn = siteName.toLowerCase().endsWith('website') ? siteName : siteName + ' website';
+    ref += `, ${sn}`;
+  }
+
+  if (url)    ref += `, ${url}`;
+  if (access) ref += `, accessed ${access}`;
+  ref += '.';
+  return ref;
+}
+
+function buildPodcast() {
+  const hostFirst     = val('podcast-host-first');
+  const hostLast      = val('podcast-host-last');
+  const prodFirst     = val('podcast-producer-first');
+  const prodLast      = val('podcast-producer-last');
+  const episodeTitle  = val('podcast-episode-title');
+  const episodeNum    = val('podcast-episode-num');
+  const date          = val('podcast-date');
+  const series        = val('podcast-series');
+  const network       = val('podcast-network');
+  const url           = val('podcast-url');
+  const access        = val('podcast-access');
+
+  if (!hostLast && !episodeTitle) return '';
+
+  // Creator string
+  let creator = '';
+  if (hostLast) {
+    const hi = hostFirst ? hostFirst.charAt(0).toUpperCase() + ' ' : '';
+    creator = `${hostLast} ${hi}`.trim() + ' (host)';
+  }
+  if (prodLast) {
+    const pi = prodFirst ? prodFirst.charAt(0).toUpperCase() + ' ' : '';
+    creator += (creator ? ' and ' : '') + `${prodLast} ${pi}`.trim() + ' (producer)';
+  }
+
+  let ref = '';
+  if (creator) ref += creator + ' ';
+  if (date)    ref += `(${date}) `;
+
+  // Episode title — in single quotes; optionally include ep number
+  let epLabel = '';
+  if (episodeTitle) {
+    epLabel = `'${episodeTitle}'`;
+    if (episodeNum) epLabel += ` (episode ${episodeNum})`;
+  }
+  if (epLabel) ref += epLabel;
+
+  ref += ' [podcast]';
+
+  if (series)  ref += `, <em>${series}</em>`;
+  if (network) ref += `, ${network}`;
+  if (url)     ref += `, ${url}`;
+  if (access)  ref += `, accessed ${access}`;
+  ref += '.';
+  return ref;
+}
+
+// ── In-text citation ───────────────────────────────────────────────
+function buildIntext() {
+  switch (currentType) {
+    case 'book':
+    case 'journal': {
+      const surname = firstSurname(currentType);
+      const year = val(currentType + '-year');
+      if (!surname && !year) return '';
+      return `(${[surname, year].filter(Boolean).join(' ')})`;
+    }
+    case 'website': {
+      const authorType = val('website-author-type');
+      const surname = authorType === 'person' ? firstSurname('website') : val('website-org');
+      const year = val('website-year');
+      if (!surname && !year) return '';
+      return `(${[surname, year].filter(Boolean).join(' ')})`;
+    }
+    case 'podcast': {
+      const hostLast = val('podcast-host-last');
+      const date     = val('podcast-date');
+      // Extract year from full date string if present
+      const yearMatch = date.match(/\d{4}/);
+      const year = yearMatch ? yearMatch[0] : date;
+      if (!hostLast && !year) return '';
+      return `(${[hostLast, year].filter(Boolean).join(' ')})`;
+    }
+  }
+  return '';
+}
+
+// ── Update preview ─────────────────────────────────────────────────
+function update() {
+  const ref = buildRef();
+  const preview = document.getElementById('preview');
+  if (ref) {
+    preview.innerHTML = ref;
+    preview.classList.remove('empty');
+  } else {
+    preview.innerHTML = 'Fill in the fields above to see your reference…';
+    preview.classList.add('empty');
+  }
+}
+
+// ── Generate final output ──────────────────────────────────────────
+function generateReference() {
+  const ref    = buildRef();
+  const intext = buildIntext();
+
+  document.getElementById('output-ref').innerHTML = ref || '<em>— no content yet —</em>';
+  document.getElementById('output-intext').textContent = intext || '—';
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('output').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Copy helpers ───────────────────────────────────────────────────
+function flashCopied(btnId) {
+  const btn = document.getElementById(btnId);
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+}
+
+function copyRef() {
+  const el = document.getElementById('output-ref');
+  const range = document.createRange();
+  range.selectNode(el);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  flashCopied('copy-ref-btn');
+}
+
+function copyIntext() {
+  const text = document.getElementById('output-intext').textContent;
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  });
+  flashCopied('copy-intext-btn');
+}
+</script>
+</body>
+</html>
